@@ -1,7 +1,9 @@
 package com.alexandercolen.service;
 
 import com.alexandercolen.dao.DebtDAO;
+import com.alexandercolen.dao.PaymentDAO;
 import com.alexandercolen.domain.Debt;
+import com.alexandercolen.domain.Payment;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -26,6 +28,9 @@ public class DebtService {
     
     @Autowired
     DebtDAO debtDAO;
+    
+    @Autowired
+    PaymentDAO paymentDAO;
 
     public DebtService() {
         LOG.log(Level.INFO, String.format("Datasource: %s", this.dataSource));
@@ -72,6 +77,16 @@ public class DebtService {
         }
         
         this.debtDAO.delete(this.debtDAO.findById(id).get());
+        
+        return true;
+    }
+    
+    public boolean postPayment(Payment payment) {
+        if (this.paymentDAO == null) {
+            return false;
+        }
+        
+        this.paymentDAO.save(payment);
         
         return true;
     }

@@ -2,6 +2,7 @@ com\alexandercolen\dao\DebtDAO.class
 com\alexandercolen\domain\Debt.class
 com\alexandercolen\AppConfig.class
 com\alexandercolen\DebtApplication.class
+com\alexandercolen\dao\PaymentDAO.class
 com\alexandercolen\rest\DebtController.class
 com\alexandercolen\domain\Payment.class
 com\alexandercolen\service\DebtService.class

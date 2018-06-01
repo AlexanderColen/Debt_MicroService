@@ -1,5 +1,9 @@
 package com.alexandercolen.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -19,15 +23,17 @@ public class Payment {
     private double spent;
     private String currency;
     
+    @JsonIgnore
     @ManyToOne
     private Debt debt;
 
     public Payment() { }
 
-    public Payment(String date, double spent, String currency) {
+    public Payment(String date, double spent, String currency, Debt debt) {
         this.date = date;
         this.spent = spent;
         this.currency = currency;
+        this.debt = debt;
     }
 
     public long getId() {
@@ -68,5 +74,16 @@ public class Payment {
 
     public void setDebt(Debt debt) {
         this.debt = debt;
+    }
+
+    public JsonObject toJson() {
+        JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
+        
+        jsonBuilder.add("id", this.id)
+                    .add("date", this.date)
+                    .add("spent", this.spent)
+                    .add("currency", this.currency);
+        
+        return jsonBuilder.build();
     }
 }

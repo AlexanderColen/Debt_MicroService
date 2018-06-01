@@ -2,6 +2,9 @@ package com.alexandercolen.domain;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -27,7 +30,9 @@ public class Debt {
     @OneToMany (mappedBy = "debt")
     private List<Payment> payments;
 
-    public Debt() { }
+    public Debt() {
+        this.payments = new ArrayList<>();
+    }
 
     public Debt(String date, String description, String type, double interest, double amount, String currency) {
         this.date = date;
@@ -37,7 +42,7 @@ public class Debt {
         this.amount = amount;
         this.currency = currency;
         this.payments = new ArrayList<>();
-    }
+   }
 
     public long getId() {
         return id;
@@ -101,5 +106,19 @@ public class Debt {
 
     public void setPayments(List<Payment> payments) {
         this.payments = payments;
+    }
+
+    public JsonObject toJson() {
+        JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
+        
+        jsonBuilder.add("id", this.id)
+                    .add("date", this.date)
+                    .add("description", this.description)
+                    .add("type", this.type)
+                    .add("interest", this.interest)
+                    .add("amount", this.amount)
+                    .add("currency", this.currency);
+        
+        return jsonBuilder.build();
     }
 }

@@ -1,10 +1,14 @@
 package com.alexandercolen.rest;
 
 import com.alexandercolen.domain.Debt;
+import com.alexandercolen.domain.Payment;
 import com.alexandercolen.service.DebtService;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonArrayBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * @author Alexander
  */
-@CrossOrigin(origins = "http://localhost:4200", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS })
+@CrossOrigin(origins = { "http://localhost:4200", "http://localhost:8090"}, methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS })
 @RestController
 @RequestMapping(value = "/debts")
 public class DebtController {
@@ -38,7 +42,17 @@ public class DebtController {
     public List<Debt> getAllDebts() {
         LOG.log(Level.INFO, "Fetch All Debts.");
         
-        return this.getDebtService().getAllDebts();
+        List<Debt> debts = this.getDebtService().getAllDebts();
+        
+//        JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
+//        
+//        for (Debt debt : debts) {
+//            arrayBuilder.add(debt.toJson());
+//        }
+//        
+//        return arrayBuilder.build();
+
+        return debts;
     }
     
     @RequestMapping(value = "/new", method = RequestMethod.POST)
@@ -72,5 +86,22 @@ public class DebtController {
         }
         
         return this.debtService;
+    }
+    
+    @RequestMapping(value = "{id}/payments/new", method = RequestMethod.POST)
+    public Payment postPayment(@RequestParam("date") String date,
+                                @RequestParam("spent") double spent,
+                                @RequestParam("currency") String currency,
+                                @PathVariable("id") long debtID) {
+        LOG.log(Level.INFO, "Post New Payment.");
+        
+        Debt debt = this.debtService.getSpecificDebt(debtID);
+        Payment payment = new Payment(date, spent, currency, debt);
+        
+        if (this.getDebtService().postPayment(payment)) {
+            return payment;
+        } else {
+            return null;
+        }
     }
 }
