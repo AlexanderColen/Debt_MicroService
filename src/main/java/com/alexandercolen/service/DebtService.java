@@ -4,12 +4,20 @@ import com.alexandercolen.dao.DebtDAO;
 import com.alexandercolen.dao.PaymentDAO;
 import com.alexandercolen.domain.Debt;
 import com.alexandercolen.domain.Payment;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicNameValuePair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +30,7 @@ public class DebtService {
 
     private static final Logger LOG = Logger.getLogger(DebtService.class.getName());
     
-    private static final String URL = "http://localhost:8080/debts";
+    private static final String EXPENDITURES_URL = "http://localhost:8090/expenditures/";
         
     @Autowired
     DataSource dataSource;
@@ -50,6 +58,21 @@ public class DebtService {
         debts.sort(Comparator.comparing(Debt::getId));
         
         return debts;
+    }
+
+    public List<Payment> getAllPayments() {
+        List<Payment> payments = new ArrayList<>();
+        if (this.paymentDAO != null) {
+            for (Payment p : this.paymentDAO.findAll()) {
+                payments.add(p);
+            }
+        } else {
+            LOG.log(Level.INFO, "Autowired fail.");
+        }
+        
+        payments.sort(Comparator.comparing(Payment::getId));
+        
+        return payments;
     }
     
     public boolean postDebt(Debt debt) {
@@ -84,12 +107,67 @@ public class DebtService {
         return true;
     }
     
-    public boolean postPayment(Payment payment) {
+    public boolean postPayment(Payment payment, String external) {
+        try {
+            if (this.paymentDAO == null) {
+                return false;
+            }
+            
+            if (external.equalsIgnoreCase("yes")) {
+                //Create HTTP request for posting payment in Debt microservice.
+                HttpClient httpClient = HttpClientBuilder.create().build();
+
+                String postURL = DebtService.EXPENDITURES_URL + "new/no";
+                LOG.log(Level.INFO, String.format("Trying to post at URL: %s", postURL));
+
+                HttpPost postRequest = new HttpPost(postURL);
+
+                List<NameValuePair> params = new ArrayList<>();
+                params.add(new BasicNameValuePair("description", String.format("%s", String.format("Payment for debt: %s", payment.getDebt().getDescription()))));
+                params.add(new BasicNameValuePair("date", String.format("%s", payment.getDate())));
+                params.add(new BasicNameValuePair("spent", String.format("%s", payment.getSpent())));
+                params.add(new BasicNameValuePair("type", String.format("%s", "DEBT")));
+                params.add(new BasicNameValuePair("currency", String.format("%s", payment.getCurrency())));
+                params.add(new BasicNameValuePair("debtID", String.format("%s", payment.getDebt().getId())));
+                postRequest.setEntity(new UrlEncodedFormEntity(params));
+
+                //Execute request.
+                HttpResponse response = httpClient.execute(postRequest);
+
+                if (response.getStatusLine().getStatusCode() != 200) {
+                    LOG.log(Level.INFO, String.format("Failed : HTTP error code : %s", response.getStatusLine().getStatusCode()));
+                    return false;
+                }
+            }
+            
+            this.paymentDAO.save(payment);
+            
+            return true;
+        } catch (IOException ex) {
+            LOG.log(Level.SEVERE, ex.getMessage(), ex);
+        }
+        
+        return false;
+    }
+
+    public Payment getSpecificPayment(long id) {
+        if (this.paymentDAO == null) {
+            return null;
+        }
+        
+        if (this.paymentDAO.findById(id).isPresent()) {
+            return this.paymentDAO.findById(id).get();
+        } else {
+            return null;
+        }
+    }
+
+    public boolean deletePayment(long id) {
         if (this.paymentDAO == null) {
             return false;
         }
         
-        this.paymentDAO.save(payment);
+        this.paymentDAO.delete(this.paymentDAO.findById(id).get());
         
         return true;
     }

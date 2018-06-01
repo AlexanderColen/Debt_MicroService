@@ -3,7 +3,6 @@ package com.alexandercolen.rest;
 import com.alexandercolen.domain.Debt;
 import com.alexandercolen.domain.Payment;
 import com.alexandercolen.service.DebtService;
-import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -53,6 +52,23 @@ public class DebtController {
         return debts;
     }
     
+    @RequestMapping(value = "/payments", method = RequestMethod.GET)
+    public List<Payment> getAllPayments() {
+        LOG.log(Level.INFO, "Fetch All Payments.");
+        
+        List<Payment> payments = this.getDebtService().getAllPayments();
+        
+//        JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
+//        
+//        for (Payment payment : payments) {
+//            arrayBuilder.add(payment.toJson());
+//        }
+//        
+//        return arrayBuilder.build();
+
+        return payments;
+    }
+    
     @RequestMapping(value = "/new", method = RequestMethod.POST)
     public Debt postDebt(@RequestParam("description") String description,
                         @RequestParam("date") String date,
@@ -86,20 +102,27 @@ public class DebtController {
         return this.debtService;
     }
     
-    @RequestMapping(value = "{id}/payments/new", method = RequestMethod.POST)
+    @RequestMapping(value = "{id}/payments/new/{external}", method = RequestMethod.POST)
     public Payment postPayment(@RequestParam("date") String date,
                                 @RequestParam("spent") double spent,
-                                @RequestParam("currency") String currency,
-                                @PathVariable("id") long debtID) {
+                                @PathVariable("id") long debtID,
+                                @PathVariable("external") String external) {
         LOG.log(Level.INFO, "Post New Payment.");
         
         Debt debt = this.debtService.getSpecificDebt(debtID);
-        Payment payment = new Payment(date, spent, currency, debt);
+        Payment payment = new Payment(date, spent, debt.getCurrency(), debt);
         
-        if (this.getDebtService().postPayment(payment)) {
+        if (this.getDebtService().postPayment(payment, external)) {
             return payment;
         } else {
             return null;
         }
+    }
+    
+    @RequestMapping(value = "/payments/delete", method = RequestMethod.POST)
+    public boolean removePayment(@RequestParam("id") long id) {
+        LOG.log(Level.INFO, String.format("Delete Payment with ID %s", id));
+        
+        return this.debtService.deletePayment(id);
     }
 }
